@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
-import java.net.URI;
 
 @Configuration
 public class DataSourceConfig {
@@ -49,22 +48,56 @@ public class DataSourceConfig {
             return new HikariDataSource(cfg);
         }
 
-        // Parse URL like: postgres://user:pass@host:port/dbname
-        URI uri = new URI(databaseUrl);
-        String userInfo = uri.getUserInfo();
+        // Parse DATABASE_URL robustly. Expect formats like:
+        //  - postgres://user:pass@host:port/dbname
+        //  - postgresql://user:pass@host/dbname
+        // Remove scheme
+        String withoutScheme = databaseUrl.replaceFirst("^[^:]+://", "");
         String username = null;
         String password = null;
-        if (userInfo != null) {
+        String hostPortAndPath = withoutScheme;
+
+        // Split userinfo if present
+        if (withoutScheme.contains("@")) {
+            String[] splitAtAt = withoutScheme.split("@", 2);
+            String userInfo = splitAtAt[0];
+            hostPortAndPath = splitAtAt[1];
             String[] parts = userInfo.split(":", 2);
             username = parts[0];
             if (parts.length > 1) password = parts[1];
         }
 
-        String host = uri.getHost();
-        int port = uri.getPort();
-        String path = uri.getPath(); // includes leading '/'
+        // Split host/port from path
+        String hostPort;
+        String path = "";
+        int slashIdx = hostPortAndPath.indexOf('/');
+        if (slashIdx >= 0) {
+            hostPort = hostPortAndPath.substring(0, slashIdx);
+            path = hostPortAndPath.substring(slashIdx); // includes leading '/'
+        } else {
+            hostPort = hostPortAndPath;
+        }
 
-        String jdbcUrl = String.format("jdbc:postgresql://%s:%d%s", host, port == -1 ? 5432 : port, path != null ? path : "");
+        String host;
+        int port = -1;
+        if (hostPort.contains(":")) {
+            String[] hp = hostPort.split(":", 2);
+            host = hp[0];
+            try {
+                port = Integer.parseInt(hp[1]);
+            } catch (NumberFormatException ex) {
+                // ignore and treat as no port
+                port = -1;
+            }
+        } else {
+            host = hostPort;
+        }
+
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("Invalid DATABASE_URL, missing host: " + databaseUrl);
+        }
+
+        String jdbcUrl = "jdbc:postgresql://" + host + (port == -1 ? ":5432" : ":" + port) + (path != null ? path : "");
 
         // If PGSSLMODE is set (e.g. require), append it to the JDBC URL
         String pgSslMode = env.getProperty("PGSSLMODE");
