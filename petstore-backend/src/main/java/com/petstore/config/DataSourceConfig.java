@@ -17,8 +17,17 @@ public class DataSourceConfig {
         // Prefer Spring property if provided
         String springUrl = env.getProperty("spring.datasource.url");
         if (springUrl != null && !springUrl.isBlank()) {
+            // Normalize URLs that may be provided without the jdbc: prefix
+            String effectiveUrl = springUrl.trim();
+            if (!effectiveUrl.startsWith("jdbc:") && effectiveUrl.startsWith("postgresql://")) {
+                effectiveUrl = "jdbc:" + effectiveUrl;
+            }
+
             HikariConfig cfg = new HikariConfig();
-            cfg.setJdbcUrl(springUrl);
+            cfg.setJdbcUrl(effectiveUrl);
+            // ensure driver is set explicitly to help the pool locate the driver
+            cfg.setDriverClassName("org.postgresql.Driver");
+
             String user = env.getProperty("spring.datasource.username");
             String pass = env.getProperty("spring.datasource.password");
             if (user != null) cfg.setUsername(user);
@@ -57,8 +66,16 @@ public class DataSourceConfig {
 
         String jdbcUrl = String.format("jdbc:postgresql://%s:%d%s", host, port == -1 ? 5432 : port, path != null ? path : "");
 
+        // If PGSSLMODE is set (e.g. require), append it to the JDBC URL
+        String pgSslMode = env.getProperty("PGSSLMODE");
+        if (pgSslMode != null && !pgSslMode.isBlank()) {
+            if (!jdbcUrl.contains("?")) jdbcUrl = jdbcUrl + "?sslmode=" + pgSslMode;
+            else jdbcUrl = jdbcUrl + "&sslmode=" + pgSslMode;
+        }
+
         HikariConfig cfg = new HikariConfig();
         cfg.setJdbcUrl(jdbcUrl);
+        cfg.setDriverClassName("org.postgresql.Driver");
         if (username != null) cfg.setUsername(username);
         if (password != null) cfg.setPassword(password);
         // sensible defaults
