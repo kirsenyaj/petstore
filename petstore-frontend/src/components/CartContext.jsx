@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer } from 'react'
 const CartStateContext = createContext()
 const CartDispatchContext = createContext()
 
-function cartReducer(state, action) {
+export function cartReducer(state, action) {
   switch (action.type) {
     case 'add': {
       const existing = state.find(i => i.id === action.item.id)

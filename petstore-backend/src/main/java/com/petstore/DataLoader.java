@@ -17,10 +17,10 @@ public class DataLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (petRepository.count() == 0) {
-            petRepository.save(new Pet("Buddy", "dog", "Labrador", 799.0));
-            petRepository.save(new Pet("Mittens", "cat", "Siamese", 399.0));
+            petRepository.save(new Pet("Buddy", "dog", "Japanese Spitz", 799.0));
+            petRepository.save(new Pet("Mittens", "cat", "Sphynx", 399.0));
             petRepository.save(new Pet("Polly", "bird", "Parrot", 149.0));
-            petRepository.save(new Pet("Slinky", "reptile", "Bearded Dragon", 199.0));
+            petRepository.save(new Pet("Slinky", "reptile", "Iguana", 199.0));
             petRepository.save(new Pet("Goldie", "fish", "Goldfish", 9.99));
         }
     }
