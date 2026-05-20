@@ -1,0 +1,49 @@
+services:
+  - type: "postgres"
+    name: "petstore-db"
+    plan: "starter"
+    configuration:
+      user: "postgres"
+      database: "petstore"
+      extensions: []
+
+  - type: "web_service"
+    name: "petstore-backend"
+    env: "docker"
+    plan: "free"
+    docker:
+      dockerfilePath: "petstore-backend/Dockerfile"
+      buildContext: "petstore-backend"
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase: false
+        value: "${{postgres.PETSTORE_DB_URL}}"
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase: false
+        value: "${{postgres.PETSTORE_DB_USER}}"
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase: false
+        value: "${{postgres.PETSTORE_DB_PASSWORD}}"
+    healthCheck:
+      path: "/actuator/health"
+      protocol: "http"
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+
+  - type: "static_site"
+    name: "petstore-frontend"
+    env: "node"
+    plan: "free"
+    buildCommand: "npm ci && npm run build"
+    publishPath: "dist"
+    root: "petstore-frontend"
+
+databases:
+  - name: PETSTORE_DB
+    provider: POSTGRES
+    plan: STARTER
+
+# Notes:
+# - The backend expects JDBC URL in SPRING_DATASOURCE_URL. On Render the connection details will be
+#   available as managed database variables; adapt `envVars` above if Render provides a single URL or
+#   you prefer binding to the managed DB via Render's built-in secrets.

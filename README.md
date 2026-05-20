@@ -19,3 +19,7 @@ Frontend
 Render deployment
 
 - Use two services: a Postgres managed DB (free-tier), a Web Service for backend (Docker) and a Static Site for frontend.
+
+Specs
+
+- The OpenAPI spec for the backend is available in `specs/openapi.yaml`. Use it with Swagger UI or Redoc to explore the API.

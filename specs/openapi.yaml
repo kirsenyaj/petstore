@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: Petstore API
+  version: 1.0.0
+  description: |
+    Read-only Petstore backend API. Provides endpoints to list pets and fetch a single pet by id.
+servers:
+  - url: http://localhost:8080
+paths:
+  /pets:
+    get:
+      summary: List pets
+      description: Returns a list of pets. Optional query parameter `type` filters by pet type (e.g., dog, cat).
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Filter pets by type
+      responses:
+        '200':
+          description: A JSON array of pet objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+  /pets/{id}:
+    get:
+      summary: Get pet by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pet found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: Pet not found
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: string
+          description: one of dog, cat, bird, reptile, fish
+        breed:
+          type: string
+        price:
+          type: number
+          format: double
+      required: [id, name, type]
