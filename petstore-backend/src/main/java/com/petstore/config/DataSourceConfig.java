@@ -99,6 +99,15 @@ public class DataSourceConfig {
 
         String jdbcUrl = "jdbc:postgresql://" + host + (port == -1 ? ":5432" : ":" + port) + (path != null ? path : "");
 
+        // In case userinfo slipped into the host (some providers include credentials in unexpected ways),
+        // ensure jdbcUrl doesn't contain an '@'. If it does, strip everything up to the last '@'.
+        if (jdbcUrl.indexOf('@') != -1) {
+            int lastAt = jdbcUrl.lastIndexOf('@');
+            String after = jdbcUrl.substring(lastAt + 1);
+            // after should start with host... so ensure we keep the jdbc:postgresql:// prefix
+            jdbcUrl = "jdbc:postgresql://" + after;
+        }
+
         // If PGSSLMODE is set (e.g. require), append it to the JDBC URL
         String pgSslMode = env.getProperty("PGSSLMODE");
         if (pgSslMode != null && !pgSslMode.isBlank()) {
