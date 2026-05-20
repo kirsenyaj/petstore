@@ -41,11 +41,11 @@ public class DataSourceConfig {
             return null;
         }
 
-        // If it already starts with jdbc:, use it as-is
+        // If it already starts with jdbc:, normalize by removing the scheme so we can parse userinfo/host the same way
         if (databaseUrl.startsWith("jdbc:")) {
-            HikariConfig cfg = new HikariConfig();
-            cfg.setJdbcUrl(databaseUrl);
-            return new HikariDataSource(cfg);
+            // remove everything up to the '//' so parsing below can handle userinfo@host:port/path
+            databaseUrl = databaseUrl.replaceFirst("^[^:]+://", "");
+            // fall through to the robust parsing logic below which will reconstruct a clean JDBC URL
         }
 
         // Parse DATABASE_URL robustly. Expect formats like:
