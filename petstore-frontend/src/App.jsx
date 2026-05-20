@@ -17,6 +17,8 @@ import SnackbarProvider from './components/SnackbarProvider'
 import WishlistDrawer from './components/WishlistDrawer'
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/villanueva/api/v1'
+// Debug: print the resolved API base at runtime (helps confirm Render build-time env injection)
+try { console.debug('[VITE_API_BASE]', API) } catch (e) {}
 
 export default function App() {
   const [pets, setPets] = useState([])
