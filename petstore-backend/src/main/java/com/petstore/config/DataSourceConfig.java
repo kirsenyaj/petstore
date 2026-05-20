@@ -13,29 +13,15 @@ public class DataSourceConfig {
 
     @Bean
     public DataSource dataSource(Environment env) throws Exception {
-        // Prefer Spring property if provided
+        // Prefer Spring property if provided; treat SPRING_DATASOURCE_URL and DATABASE_URL the same
         String springUrl = env.getProperty("spring.datasource.url");
+        // If SPRING_DATASOURCE_URL is set, use it; otherwise fall back to DATABASE_URL
+        String databaseUrl = null;
         if (springUrl != null && !springUrl.isBlank()) {
-            // Normalize URLs that may be provided without the jdbc: prefix
-            String effectiveUrl = springUrl.trim();
-            if (!effectiveUrl.startsWith("jdbc:") && effectiveUrl.startsWith("postgresql://")) {
-                effectiveUrl = "jdbc:" + effectiveUrl;
-            }
-
-            HikariConfig cfg = new HikariConfig();
-            cfg.setJdbcUrl(effectiveUrl);
-            // ensure driver is set explicitly to help the pool locate the driver
-            cfg.setDriverClassName("org.postgresql.Driver");
-
-            String user = env.getProperty("spring.datasource.username");
-            String pass = env.getProperty("spring.datasource.password");
-            if (user != null) cfg.setUsername(user);
-            if (pass != null) cfg.setPassword(pass);
-            return new HikariDataSource(cfg);
+            databaseUrl = springUrl.trim();
+        } else {
+            databaseUrl = env.getProperty("DATABASE_URL");
         }
-
-        // Render and many cloud providers expose DATABASE_URL in the form: postgres://user:pass@host:port/db
-        String databaseUrl = env.getProperty("DATABASE_URL");
         if (databaseUrl == null || databaseUrl.isBlank()) {
             // Let Spring Boot auto-configure the DataSource if no env var is present
             return null;
@@ -48,13 +34,13 @@ public class DataSourceConfig {
             // fall through to the robust parsing logic below which will reconstruct a clean JDBC URL
         }
 
-        // Parse DATABASE_URL robustly. Expect formats like:
+    // Parse DATABASE_URL (or SPRING_DATASOURCE_URL) robustly. Expect formats like:
         //  - postgres://user:pass@host:port/dbname
         //  - postgresql://user:pass@host/dbname
         // Remove scheme
         String withoutScheme = databaseUrl.replaceFirst("^[^:]+://", "");
-        String username = null;
-        String password = null;
+    String username = null;
+    String password = null;
         String hostPortAndPath = withoutScheme;
 
         // Split userinfo if present
@@ -118,8 +104,14 @@ public class DataSourceConfig {
         HikariConfig cfg = new HikariConfig();
         cfg.setJdbcUrl(jdbcUrl);
         cfg.setDriverClassName("org.postgresql.Driver");
-        if (username != null) cfg.setUsername(username);
-        if (password != null) cfg.setPassword(password);
+    // Allow explicit SPRING_DATASOURCE_USERNAME/PASSWORD to override parsed userinfo
+    String explicitUser = env.getProperty("spring.datasource.username");
+    String explicitPass = env.getProperty("spring.datasource.password");
+    if (explicitUser != null && !explicitUser.isBlank()) username = explicitUser;
+    if (explicitPass != null && !explicitPass.isBlank()) password = explicitPass;
+
+    if (username != null) cfg.setUsername(username);
+    if (password != null) cfg.setPassword(password);
         // sensible defaults
         cfg.setMaximumPoolSize(10);
         cfg.setPoolName("HikariPool-Render");
