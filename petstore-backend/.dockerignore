@@ -1,0 +1,9 @@
+target
+node_modules
+.git
+.gitignore
+.m2
+dist
+*.log
+*.tmp
+/*.log
